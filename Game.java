@@ -1,0 +1,169 @@
+
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.Rectangle;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+
+public class Game extends JPanel implements KeyListener {
+    int x = 0;
+    int y = 0;
+    int width = 50;
+    int height = 50;
+    int cubeX = -100;
+    int cubeY = -100;
+    int cubeWidth = 10;
+    int cubeHeight = 10;
+    Color cubeColor = Color.RED;
+    Thread t1;
+    JButton startButton = new JButton("Start");
+    boolean gameStarted = false;
+    Enemy enemy = new Enemy();
+
+    public Game() {
+        addKeyListener(this);
+        setFocusable(true);
+        t1 = new Thread(() -> {
+            while (true) {
+                if (gameStarted) {
+                    moveCube();
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        add(startButton);
+        startButton.addActionListener(e -> {
+            gameStarted = true;
+            startButton.setVisible(false);
+            requestFocus();
+            t1.start();
+        });
+        startButton.setVisible(true);
+    }
+
+    public void paint(Graphics g) {
+        setBackground(Color.WHITE);
+        super.paint(g);
+        g.setColor(Color.BLUE);
+        g.fillRect(x, y, width, height);
+        g.setColor(cubeColor);
+        g.fillRect(cubeX, cubeY, cubeWidth, cubeHeight);
+        if (enemy.alive) {
+            g.setColor(Color.RED);
+            g.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+    }
+
+    public void moveUp() {
+        y -= 10;
+    }
+
+    public void moveDown() {
+        y += 10;
+    }
+
+    public void moveLeft() {
+        x -= 10;
+    }
+
+    public void moveRight() {
+        x += 10;
+    }
+
+    private void moveCube(){
+        ejectCube();
+        enemy.move(x, y);
+        checkCollision();
+        repaint();
+    }
+
+    private void ejectCube(){
+        cubeX -=10;
+    }
+
+    private void checkCollision() {
+        Rectangle cubeRect = new Rectangle(cubeX, cubeY, cubeWidth, cubeHeight);
+        Rectangle enemyRect = new Rectangle(enemy.x, enemy.y, enemy.width, enemy.height);
+        if (cubeRect.intersects(enemyRect)) {
+            enemy.alive = false;
+            reset();
+        }
+    }
+
+    private void reset() {
+        x = 0;
+        y = 0;
+        enemy = new Enemy();
+        enemy.x = (int)(Math.random() * 400);
+        enemy.y = (int)(Math.random() * 400);
+        gameStarted = false;
+        startButton.setVisible(true);
+    }
+
+    public void keyPressed(KeyEvent e) {
+        if (!gameStarted) {
+            return;
+        }
+        int code = e.getKeyCode();
+        if (code == KeyEvent.VK_UP) {
+            moveUp();
+        }
+        if (code == KeyEvent.VK_DOWN) {
+            moveDown();
+        }
+        if (code == KeyEvent.VK_LEFT) {
+            moveLeft();
+        }
+        if (code == KeyEvent.VK_RIGHT) {
+            moveRight();
+        }
+        if (code == KeyEvent.VK_SPACE) {
+            cubeX = x + (width/2) - (cubeWidth/2);
+            cubeY = y + (height/2) - (cubeHeight/2);
+            repaint();
+        }
+        repaint();
+    }
+
+
+    public void keyReleased(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {}
+
+    public static void main(String[] args) {
+        JFrame frame = new JFrame();
+        frame.setSize(500, 500);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(new Game());
+        frame.setVisible(true);
+    }
+}
+
+class Enemy {
+    int x = (int)(Math.random() * 400);
+    int y = (int)(Math.random() * 400);
+    int width = 30;
+    int height = 30;
+    int speed = 2;
+    boolean alive = true;
+
+    public void move(int playerX, int playerY) {
+        if (x < playerX) {
+            x += speed;
+        } else if (x > playerX) {
+            x -= speed;
+        }
+
+        if (y < playerY) {
+            y += speed;
+        } else if (y > playerY) {
+            y -= speed;
+        }
+    }
+}
